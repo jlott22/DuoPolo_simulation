@@ -50,14 +50,17 @@ class Config:
 # ------------------------
 class InProcBus:
     def __init__(self):
-        self.subs: Dict[str, List[Callable[[str], None]]] = {}
-    def subscribe(self, topic_prefix: str, fn: Callable[[str], None]):
+        # subscribers keyed by topic prefix
+        self.subs: Dict[str, List[Callable[[str, str], None]]] = {}
+
+    def subscribe(self, topic_prefix: str, fn: Callable[[str, str], None]):
         self.subs.setdefault(topic_prefix, []).append(fn)
+
     def publish(self, topic: str, payload: str):
         for prefix, handlers in self.subs.items():
             if topic.startswith(prefix):
                 for h in handlers:
-                    h(f"{topic}={payload}")
+                    h(topic, payload)
 
 # ------------------------
 # World
@@ -131,6 +134,7 @@ class RobotAgent:
         self.grid[self.pos[1]][self.pos[0]] = VISITED
         self.world.grid[self.pos[1]][self.pos[0]] = VISITED
         self.path_history.append(self.pos)
+        # subscribe to messages from the other robot
         self.bus.subscribe(f"{self.other_id}/", self._on_other_msg)
         self._pub_status_pos()
 
@@ -144,33 +148,33 @@ class RobotAgent:
     def _pub_alert_object(self, cell):
         x,y = cell; self.bus.publish(f"{self.robot_id}/alert", f"object:{x},{y}")
 
-    def _on_other_msg(self, line: str):
+    def _on_other_msg(self, topic: str, payload: str):
+        """Handle bus messages from the other robot."""
         try:
-            left, payload = line.split("=",1)
-            sender, topic = left.split("/",1)
+            sender, sub_topic = topic.split("/", 1)
         except ValueError:
             return
         if sender != self.other_id:
             return
-        if topic == "status" and payload.startswith("intent:"):
-            xy = payload.split("intent:",1)[1]
+        if sub_topic == "status" and payload.startswith("intent:"):
+            xy = payload.split("intent:", 1)[1]
             try:
-                x,y = [int(v) for v in xy.split(",")]
-                self.other_intent = (x,y)
-                self.other_intent_ttl = self.cfg.INTENT_TTL_STEPS
-            except Exception:
-                pass
-        elif topic == "alert" and payload.startswith("object:"):
+                x, y = [int(v) for v in xy.split(",")]
+            except ValueError:
+                return
+            self.other_intent = (x, y)
+            self.other_intent_ttl = self.cfg.INTENT_TTL_STEPS
+        elif sub_topic == "alert" and payload.startswith("object:"):
             self.found_object = True
-        elif topic == "clue" and payload.startswith("clue:"):
-            xy = payload.split("clue:",1)[1]
+        elif sub_topic == "clue" and payload.startswith("clue:"):
+            xy = payload.split("clue:", 1)[1]
             try:
-                x,y = [int(v) for v in xy.split(",")]
-                if (x,y) not in self.clues:
-                    self.clues.append((x,y))
-                    self.first_clue_seen = True
-            except Exception:
-                pass
+                x, y = [int(v) for v in xy.split(",")]
+            except ValueError:
+                return
+            if (x, y) not in self.clues:
+                self.clues.append((x, y))
+                self.first_clue_seen = True
 
     def _edge_distance_from_side(self, x: int) -> int:
         size = self.world.size
