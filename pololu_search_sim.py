@@ -39,6 +39,7 @@ class Config:
     SWITCH_COL_BASE: float = 0.2
     INTENT_TTL_STEPS: int = 1
     INTENT_PENALTY: float = 8.0
+    REVISIT_PENALTY: float = 4.0
     REWARD_GAIN: float = 5.0
     CLUE_COUNT: int = 3
     max_steps_factor: int = 5  # grid^2 * factor
@@ -250,8 +251,9 @@ class RobotAgent:
                 turn_cost = 1.0 if (dx,dy) != cur_h else 0.0
                 serp_cost = self._centerward_step_cost(current[0], nx)
                 intent_cost = self.cfg.INTENT_PENALTY if (self._intent_active() and (nx,ny)==self.other_intent) else 0.0
+                revisit_cost = self.cfg.REVISIT_PENALTY if self.world.grid[ny][nx] == VISITED else 0.0
                 reward_bonus = RF * self.reward_map[ny][nx]
-                step_cost = max(0.01, (move_cost + turn_cost + serp_cost + intent_cost) - reward_bonus)
+                step_cost = max(0.01, (move_cost + turn_cost + serp_cost + intent_cost + revisit_cost) - reward_bonus)
                 new_cost = cost_so_far[current] + step_cost
                 if (nx,ny) not in cost_so_far or new_cost < cost_so_far[(nx,ny)]:
                     cost_so_far[(nx,ny)] = new_cost
