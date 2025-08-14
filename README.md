@@ -44,6 +44,7 @@ Tuning knobs
 Edit `Config` in the script (top) to change:
 - `grid_size`, `step_seconds`, `CLUE_COUNT`
 - `CENTER_STEP`, `SWITCH_COL_BASE`, `REWARD_GAIN`
+- `REVISIT_PENALTY` (discourages stepping on visited cells)
 - `reward_factor_astar` (keeps A* edges positive)
 
 Keeping it in sync with your robot code
