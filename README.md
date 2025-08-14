@@ -10,7 +10,7 @@ A fast, configurable simulator for your Pololu grid search system that mirrors y
 Key features
 ------------
 - In-process MQTT bus (no broker needed), using topics like `00/status`, `00/clue`, `00/alert`.
-- 2 robots by default:
+- 2 robots by default (coordinates use +x East and +y North):
   - '00' starts at (0,0), facing North.
   - '01' starts at (9,9), facing South.
 - Grid world (default 10x10). Clues are placed with a 1/(1+Manhattan distance) bias around the kid.

@@ -67,7 +67,7 @@ class InProcBus:
 # ------------------------
 EMPTY = 0
 VISITED = 2
-DIRS = [(0,-1),(1,0),(0,1),(-1,0)]  # N,E,S,W
+DIRS = [(0,1),(1,0),(0,-1),(-1,0)]  # N,E,S,W
 
 @dataclass
 class World:
@@ -316,9 +316,9 @@ def run_episode(cfg: Config, seed: Optional[int]=None) -> EpisodeResult:
     bus = InProcBus()
     agents: Dict[str, RobotAgent] = {}
     agents["00"] = RobotAgent(robot_id="00", other_id="01", world=world, bus=bus,
-                              prefers_left=True, start_pos=(0,0), start_heading=(0,-1), cfg=cfg)
+                              prefers_left=True, start_pos=(0,0), start_heading=(0,1), cfg=cfg)
     agents["01"] = RobotAgent(robot_id="01", other_id="00", world=world, bus=bus,
-                              prefers_left=False, start_pos=(cfg.grid_size-1, cfg.grid_size-1), start_heading=(0,1), cfg=cfg)
+                              prefers_left=False, start_pos=(cfg.grid_size-1, cfg.grid_size-1), start_heading=(0,-1), cfg=cfg)
     # log subscriber (no-op speed)
     found = False; collisions = 0; current_step = 0
     max_steps = cfg.grid_size * cfg.grid_size * cfg.max_steps_factor
@@ -398,8 +398,8 @@ def run_viewer(cfg: Config, seed: Optional[int] = None):
     kid, clues = sample_kid_and_clues(cfg.grid_size, cfg.CLUE_COUNT, rng)
     world = World(size=cfg.grid_size, kid=kid, clues=clues)
     bus = InProcBus()
-    a0 = RobotAgent("00","01", world, bus, True, (0,0), (0,-1), cfg)
-    a1 = RobotAgent("01","00", world, bus, False,(size-1,size-1),(0,1), cfg)
+    a0 = RobotAgent("00","01", world, bus, True, (0,0), (0,1), cfg)
+    a1 = RobotAgent("01","00", world, bus, False,(size-1,size-1),(0,-1), cfg)
     agents = {"00": a0, "01": a1}
     font = pygame.font.SysFont("Arial", 16)
     running = True; paused=False; fast=False; step=0
@@ -412,8 +412,8 @@ def run_viewer(cfg: Config, seed: Optional[int] = None):
                 if event.key == pygame.K_r:  # reset
                     kid, clues = sample_kid_and_clues(cfg.grid_size, cfg.CLUE_COUNT, rng)
                     world = World(size=cfg.grid_size, kid=kid, clues=clues)
-                    a0 = RobotAgent("00","01", world, bus, True, (0,0), (0,-1), cfg)
-                    a1 = RobotAgent("01","00", world, bus, False,(size-1,size-1),(0,1), cfg)
+                    a0 = RobotAgent("00","01", world, bus, True, (0,0), (0,1), cfg)
+                    a1 = RobotAgent("01","00", world, bus, False,(size-1,size-1),(0,-1), cfg)
                     agents = {"00": a0, "01": a1}
                     step=0
         if not paused:
@@ -432,17 +432,17 @@ def run_viewer(cfg: Config, seed: Optional[int] = None):
         for y in range(size):
             for x in range(size):
                 if world.grid[y][x] == VISITED:
-                    pygame.draw.rect(screen, (220,220,220), (x*cell+1, y*cell+1, cell-2, cell-2))
+                    pygame.draw.rect(screen, (220,220,220), (x*cell+1, (size-1-y)*cell+1, cell-2, cell-2))
         # clues
         for (cx,cy) in world.clues:
-            pygame.draw.rect(screen, (200,200,0), (cx*cell+8, cy*cell+8, cell-16, cell-16))
+            pygame.draw.rect(screen, (200,200,0), (cx*cell+8, (size-1-cy)*cell+8, cell-16, cell-16))
         # kid
         kx,ky = world.kid
-        pygame.draw.circle(screen, (0,150,0), (kx*cell+cell//2, ky*cell+cell//2), cell//3, 0)
+        pygame.draw.circle(screen, (0,150,0), (kx*cell+cell//2, (size-1-ky)*cell+cell//2), cell//3, 0)
         # robots
         for rid, agent in agents.items():
             x,y = agent.pos
-            pygame.draw.circle(screen, (0,0,255) if rid=="00" else (255,0,0), (x*cell+cell//2, y*cell+cell//2), cell//3, 0)
+            pygame.draw.circle(screen, (0,0,255) if rid=="00" else (255,0,0), (x*cell+cell//2, (size-1-y)*cell+cell//2), cell//3, 0)
         # hud
         txt = font.render(f"step {step}  [space]=pause  [f]=fast  [r]=reset", True, (0,0,0))
         screen.blit(txt, (8,8))
