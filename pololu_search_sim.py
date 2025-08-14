@@ -152,23 +152,23 @@ class RobotAgent:
             return
         if sender != self.other_id:
             return
-        if topic.startswith("status:intent:"):
-            xy = topic.split("status:intent:",1)[1]
+        if topic == "status" and payload.startswith("intent:"):
+            xy = payload.split("intent:",1)[1]
             try:
                 x,y = [int(v) for v in xy.split(",")]
                 self.other_intent = (x,y)
                 self.other_intent_ttl = self.cfg.INTENT_TTL_STEPS
-            except:
+            except ValueError:
                 pass
-        elif topic.startswith("alert:object:"):
+        elif topic == "alert" and payload.startswith("object:"):
             self.found_object = True
-        elif topic.startswith("clue:clue:"):
-            xy = topic.split("clue:clue:",1)[1]
+        elif topic == "clue" and payload.startswith("clue:"):
+            xy = payload.split("clue:",1)[1]
             try:
                 x,y = [int(v) for v in xy.split(",")]
                 if (x,y) not in self.clues:
                     self.clues.append((x,y)); self.first_clue_seen = True
-            except:
+            except ValueError:
                 pass
 
     def _edge_distance_from_side(self, x: int) -> int:
@@ -321,9 +321,14 @@ def run_episode(cfg: Config, seed: Optional[int]=None) -> EpisodeResult:
     while current_step < max_steps:
         current_step += 1
         order = ["00","01"]; rng.shuffle(order)
-        prev = {rid: agents[rid].pos for rid in order}
         for rid in order:
             agents[rid].step(global_stop)
+            if agents[rid].found_object:
+                global_stop = True
+                break
+        if global_stop:
+            found = True
+            break
         # collision (both to same cell) — rare with intent cost but check
         if agents["00"].pos == agents["01"].pos and not (agents["00"].found_object or agents["01"].found_object):
             collisions += 1
@@ -333,8 +338,6 @@ def run_episode(cfg: Config, seed: Optional[int]=None) -> EpisodeResult:
                 mover.path_history.pop()
                 mover.pos = mover.path_history[-1]
                 mover.revisits += 1
-        if agents["00"].found_object or agents["01"].found_object:
-            global_stop = True; found = True; break
     return EpisodeResult(
         found=found,
         steps=current_step,
