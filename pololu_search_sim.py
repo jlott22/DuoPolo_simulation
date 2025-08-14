@@ -152,23 +152,24 @@ class RobotAgent:
             return
         if sender != self.other_id:
             return
-        if topic.startswith("status:intent:"):
-            xy = topic.split("status:intent:",1)[1]
+        if topic == "status" and payload.startswith("intent:"):
+            xy = payload.split("intent:",1)[1]
             try:
                 x,y = [int(v) for v in xy.split(",")]
                 self.other_intent = (x,y)
                 self.other_intent_ttl = self.cfg.INTENT_TTL_STEPS
-            except:
+            except Exception:
                 pass
-        elif topic.startswith("alert:object:"):
+        elif topic == "alert" and payload.startswith("object:"):
             self.found_object = True
-        elif topic.startswith("clue:clue:"):
-            xy = topic.split("clue:clue:",1)[1]
+        elif topic == "clue" and payload.startswith("clue:"):
+            xy = payload.split("clue:",1)[1]
             try:
                 x,y = [int(v) for v in xy.split(",")]
                 if (x,y) not in self.clues:
-                    self.clues.append((x,y)); self.first_clue_seen = True
-            except:
+                    self.clues.append((x,y))
+                    self.first_clue_seen = True
+            except Exception:
                 pass
 
     def _edge_distance_from_side(self, x: int) -> int:
